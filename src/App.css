@@ -1,21 +1,16 @@
 .app {
-  margin: 50px;
+    margin: 50px;
 }
 
 .app__title {
-  margin-bottom: 50px;
+    margin-bottom: 50px;
 }
 
-.seismograph {
-  fill: white;
-  overflow: visible;
+.app__content {
+    width: 100%;
+    display: flex;
 }
 
-.marker .markerpath {
-  stroke: white;
-}
-
-.markertext polygon {
-  fill: #61dafb;
-  opacity: .4;
+.app__graphics {
+    width: 90%;
 }

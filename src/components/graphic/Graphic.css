@@ -1,0 +1,14 @@
+.graphic__wrapper {
+    width: 100%;
+    height: 100px;
+}
+
+.graphic__wrapper_first {
+    width: 100%;
+    height: 130px;
+}
+
+.graphic__wrapper_last {
+    width: 100%;
+    height: 120px;
+}
