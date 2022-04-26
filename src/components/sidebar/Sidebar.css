@@ -15,6 +15,10 @@
     transition: .2s;
 }
 
+.sidebar__element_active {
+    background-color: #61dafb44;
+}
+
 .sidebar__element:hover {
     background-color: #61dafb44;
 }

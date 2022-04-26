@@ -5,6 +5,15 @@ import properties from '../../properties';
 export function Sidebar(props) {
     const [content, setContent] = useState([]);
 
+    const clickHandler = (e) => {
+        const element = e.target;
+        const neighbours = element.parentNode.children;
+        for (let neighbour of neighbours) {
+            neighbour.className = 'sidebar__element';
+        }
+        element.classList.add('sidebar__element_active');
+    };
+
     useEffect(async () => {
         const eventURL = properties.SERVER + 'event/1/query?limit=10&includearrivals=true';
         const response = await fetch(eventURL);
@@ -50,7 +59,7 @@ export function Sidebar(props) {
     }, []);
 
     return (
-        <div className='sidebar'>
+        <div className='sidebar' onClick={clickHandler}>
             {content}
         </div>
     );

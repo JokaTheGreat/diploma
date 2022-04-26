@@ -8,6 +8,26 @@ export default function App(props) {
     let stationsId = [];
     const [sidebar, setSidebar] = useState(<div className='sidebar'></div>);
 
+    const resizeGraphics = (event, startTime, endTime) => {
+        const tempGraphics = [];
+        let graphNumber = 0;
+        
+        for (let station of stationsId) {
+            if (station.network === 'KA') {
+                let pos = '';
+                if (graphNumber++ === 0) {
+                    pos = 'first';
+                }
+                else if (graphNumber === 21) {
+                    pos = 'last';
+                }
+                const key = station.network + station.station + station.channel + startTime.toISOString();
+                tempGraphics.push(<Graphic key={key} resize={resizeGraphics} range={[event['xaxis.range[0]'], event['xaxis.range[1]']]} network={station.network} station={station.station} channel={station.channel} startTime={startTime} endTime={endTime} position={pos} />);
+            }
+        }
+        setGraphics([...tempGraphics]);
+    };
+
     const callback = (json) => {
         const MINUTE = 60000;
         const startTime = new Date(json.time);
@@ -18,7 +38,6 @@ export default function App(props) {
 
         for (let station of stationsId) {
             if (station.network === 'KA') {
-                console.log(1);
                 let pos = '';
                 if (graphNumber++ === 0) {
                     pos = 'first';
@@ -27,7 +46,7 @@ export default function App(props) {
                     pos = 'last';
                 }
                 const key = station.network + station.station + station.channel + startTime.toISOString();
-                tempGraphics.push(<Graphic key={key} network={station.network} station={station.station} channel={station.channel} startTime={startTime} endTime={endTime} position={pos} />);
+                tempGraphics.push(<Graphic key={key} resize={resizeGraphics} range={[startTime, endTime]} network={station.network} station={station.station} channel={station.channel} startTime={startTime} endTime={endTime} position={pos} />);
             }
         }
         setGraphics([...tempGraphics]);

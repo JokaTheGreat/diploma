@@ -27,20 +27,14 @@ export function Graphic(props) {
             gridcolor: '#61dafb44',
         },
         xaxis: {
+            range: props.range,
             linecolor: '61dafb',
             linewidth: 1,
             mirror: true,
             gridcolor: '#61dafb44',
             showticklabels: props.position === '' ? false : true,
             side: props.position !== 'first' ? 'bottom' : 'top'
-        },/*
-      grid: {
-        rows: 2,
-        columns: 1,
-        subplots: [['xy'], ['xy2']],
-        pattern: 'independent'
-      },
-      showlegend: false*/
+        },
     };
 
     useEffect(async () => {
@@ -70,23 +64,13 @@ export function Graphic(props) {
             marker: {
                 color: '#61dafb'
             }
-        }/*,
-      {
-        x: x,
-        y: y,
-        type: 'scatter',
-        mode: 'lines',
-        hoverinfo: 'none',
-        marker: {
-          color: '#61dafb'
-        },
-        yaxis: 'y2'
-      }*/]);
+        }]);
 
     }, []);
 
     return (
         <Plot
+            onRelayout={(e) => {props.resize(e, props.startTime, props.endTime)}}
             className={classname}
             data={data}
             layout={layout}
