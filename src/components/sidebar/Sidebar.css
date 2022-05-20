@@ -1,0 +1,24 @@
+.sidebar {
+    width: 10%;
+    min-height: 500px;
+    height: fit-content;
+    margin-top: 30px;
+    border: 1px solid #61dafb;
+    overflow: hidden;
+}
+
+.sidebar__element {
+    margin: 0;
+    padding: 5px;
+    border: 1px solid #61dafb;
+    cursor: pointer;
+    transition: .2s;
+}
+
+.sidebar__element_active {
+    background-color: #61dafb44;
+}
+
+.sidebar__element:hover {
+    background-color: #61dafb44;
+}
