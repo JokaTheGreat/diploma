@@ -1,66 +1,91 @@
-import { useState, useEffect } from 'react';
-import './Sidebar.css';
-import properties from '../../properties';
+import { useEffect, useState } from "react";
+import "./Sidebar.css";
+import properties from "../../properties";
 
-export function Sidebar(props) {
-    const [content, setContent] = useState([]);
+async function getEventData() {
+  const url = properties.SERVER + "event/1/query?limit=10&includearrivals=true";
 
-    const clickHandler = (e) => {
-        const element = e.target;
-        const neighbours = element.parentNode.children;
-        for (let neighbour of neighbours) {
-            neighbour.className = 'sidebar__element';
-        }
-        element.classList.add('sidebar__element_active');
-    };
+  const response = await fetch(url);
+  const data = await response.text();
 
-    useEffect(async () => {
-        const eventURL = properties.SERVER + 'event/1/query?limit=10&includearrivals=true';
-        const response = await fetch(eventURL);
-        const data = await response.text();
+  return data;
+}
 
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(data, 'text/xml');
-        const eventsInfo = [];
-        const events = [...xml.getElementsByTagName('event')];
-        const magnitudes = [...xml.getElementsByTagName('mag')].map(mag => mag.textContent);
+function parseEventData(data) {
+  const eventsInfo = [];
+  const xml = new DOMParser().parseFromString(data, "text/xml");
 
-        for (let i = 0; i < events.length; i++) {
-            const time = [...[...xml.getElementsByTagName('origin')][i].getElementsByTagName('time')].map(tm => tm.children[0].textContent)[0];
+  const magnitudes = [...xml.getElementsByTagName("mag")].map(
+    (mag) => mag.textContent
+  );
+  const origins = [...xml.getElementsByTagName("origin")];
+  const events = [...xml.getElementsByTagName("event")];
 
-            const waves = [...events[i].getElementsByTagName('pick')].map(pick => {
-                const children = pick.children;
+  for (const [i, event] of events.entries()) {
+    const time = [...origins[i].getElementsByTagName("time")].map(
+      (tm) => tm.children[0].textContent
+    )[0];
 
-                const phase = children[0].textContent;
-                const time = children[3].children[0].textContent;
-                const waveFormId = children[4];
+    const waves = [...event.getElementsByTagName("pick")].map((pick) => {
+      const phase = pick.children[0].textContent;
+      const time = pick.children[3].children[0].textContent;
+      const waveFormId = pick.children[4];
 
-                return {
-                    phase: phase,
-                    time: time,
-                    network: waveFormId.getAttribute('networkCode'),
-                    station: waveFormId.getAttribute('stationCode'),
-                    location: waveFormId.getAttribute('locationCode'),
-                    channel: waveFormId.getAttribute('channelCode')
-                };
-            });
+      return {
+        phase: phase,
+        time: time,
+        network: waveFormId.getAttribute("networkCode"),
+        station: waveFormId.getAttribute("stationCode"),
+        location: waveFormId.getAttribute("locationCode"),
+        channel: waveFormId.getAttribute("channelCode"),
+      };
+    });
 
-            eventsInfo.push({
-                magnitude: magnitudes[i],
-                time: time,
-                waves: waves
-            });
-        }
+    eventsInfo.push({
+      magnitude: magnitudes[i],
+      time: time,
+      waves: waves,
+    });
+  }
 
-        setContent(eventsInfo.map(el => {
-            return <h5 onClick={() => props.callback(el)} className='sidebar__element'>{'mag: ' + el.magnitude}<br />
-                {'time: ' + el.time}</h5>;
-        }));
-    }, []);
+  return eventsInfo;
+}
 
-    return (
-        <div className='sidebar' onClick={clickHandler}>
-            {content}
-        </div>
-    );
+export function Sidebar({ onClickCallback }) {
+  const [data, setData] = useState([]);
+
+  const onClick = (e, itemData) => {
+    const element = e.currentTarget;
+    if (element.classList.contains("sidebar__element_active")) {
+      return;
+    }
+
+    const sidebarItems = element.parentNode.children;
+    [...sidebarItems].forEach((item) => (item.className = "sidebar__element"));
+    element.classList.add("sidebar__element_active");
+
+    onClickCallback(itemData);
+  };
+
+  useEffect(async () => {
+    const data = await getEventData();
+    setData(parseEventData(data));
+  }, []);
+
+  return (
+    <div className="sidebar">
+      {data.map((item) => {
+        return (
+          <div
+            key={"" + item.magnitude + item.time}
+            className="sidebar__element"
+            onClick={(e) => onClick(e, item)}
+          >
+            mag: {item.magnitude} <br />
+            time: {item.time}
+          </div>
+        );
+      })}
+    </div>
+  );
 }

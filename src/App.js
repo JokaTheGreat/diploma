@@ -1,109 +1,138 @@
-import { useState, useEffect } from 'react';
-import { Graphic, Sidebar } from './components';
-import './App.css';
-import properties from './properties';
+import { useState, useEffect } from "react";
+import { Graphic, Sidebar } from "./components";
+import "./App.css";
+import properties from "./properties";
 
-export default function App(props) {
-    const [graphics, setGraphics] = useState([]);
-    let stationsId = [];
-    const [sidebar, setSidebar] = useState(<div className='sidebar'></div>);
+async function getStationsData() {
+  const url = properties.SERVER + "station/1/query?level=channel";
 
-    const resizeGraphics = (event, startTime, endTime) => {
-        const tempGraphics = [];
-        let graphNumber = 0;
-        
-        for (let station of stationsId) {
-            if (station.network === 'KA') {
-                let pos = '';
-                if (graphNumber++ === 0) {
-                    pos = 'first';
-                }
-                else if (graphNumber === 21) {
-                    pos = 'last';
-                }
-                const key = station.network + station.station + station.channel + startTime.toISOString();
-                tempGraphics.push(<Graphic key={key} resize={resizeGraphics} range={[event['xaxis.range[0]'], event['xaxis.range[1]']]} network={station.network} station={station.station} channel={station.channel} startTime={startTime} endTime={endTime} position={pos} />);
-            }
-        }
-        setGraphics([...tempGraphics]);
-    };
+  const response = await fetch(url);
+  const data = await response.text();
 
-    const callback = (json) => {
-        const MINUTE = 60000;
-        const startTime = new Date(json.time);
-        const endTime = new Date(startTime.getTime() + MINUTE);
+  return data;
+}
 
-        const tempGraphics = [];
-        let graphNumber = 0;
+function parseStationsData(data) {
+  const stationsData = [];
 
-        for (let station of stationsId) {
-            if (station.network === 'KA') {
-                let pos = '';
-                if (graphNumber++ === 0) {
-                    pos = 'first';
-                }
-                else if (graphNumber === 21) {
-                    pos = 'last';
-                }
-                const key = station.network + station.station + station.channel + startTime.toISOString();
-                tempGraphics.push(<Graphic key={key} resize={resizeGraphics} range={[startTime, endTime]} network={station.network} station={station.station} channel={station.channel} startTime={startTime} endTime={endTime} position={pos} />);
-            }
-        }
-        setGraphics([...tempGraphics]);
+  const xml = new DOMParser().parseFromString(data, "text/xml");
+  const networks = xml.getElementsByTagName("Network");
+
+  for (let network of networks) {
+    if (network.nodeName !== "Network") {
+      continue;
     }
 
-    const getStations = async () => {
-        const stationURL = properties.SERVER + 'station/1/query?level=channel';
+    const networkCode = network.getAttribute("code");
+    if (networkCode !== "KA") {
+      continue;
+    }
 
-        const response = await fetch(stationURL);
-        const data = await response.text();
+    const stations = network.children;
 
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(data, 'text/xml');
-        const networks = xml.getElementsByTagName('Network');
+    for (let station of stations) {
+      if (station.nodeName !== "Station") {
+        continue;
+      }
 
-        const tempStationsId = [];
-        for (let network of networks) {
-            if (network.nodeName === 'Network') {
-                const networkCode = network.getAttribute('code');
+      const stationCode = station.getAttribute("code");
+      const channels = station.children;
 
-                const stations = network.children;
-                for (let station of stations) {
-                    if (station.nodeName === 'Station') {
-                        const stationCode = station.getAttribute('code');
-
-                        const channels = station.children;
-                        for (let channel of channels) {
-                            if (channel.nodeName === 'Channel') {
-                                const channelCode = channel.getAttribute('code');
-                                tempStationsId.push({ network: networkCode, station: stationCode, channel: channelCode });
-                            }
-                        }
-                    }
-                }
-            }
+      for (let channel of channels) {
+        if (channel.nodeName !== "Channel") {
+          continue;
         }
-        return tempStationsId;
-    };
 
-    const createGraphics = () => {
-    };
+        const channelCode = channel.getAttribute("code");
+        stationsData.push({
+          network: networkCode,
+          station: stationCode,
+          channel: channelCode,
+        });
+      }
+    }
+  }
 
-    useEffect(async () => {
-        stationsId = await getStations();
-        createGraphics();
-        setSidebar(<Sidebar callback={callback} />);
-    }, []);
+  return stationsData;
+}
 
-    return (
-        <div className="app">
-            <h2 className="app__title">Seisgraphs: </h2>
-            <main className='app__content'>
-                {sidebar}
-                <div className='app__graphics'>
-                    {graphics}
-                </div>
-            </main>
-        </div>
+async function getStations() {
+  const data = await getStationsData();
+  return parseStationsData(data);
+}
+
+export default function App() {
+  const [graphicsData, setGraphicsData] = useState([]);
+  let stationsId = [];
+
+  const onGraphicsResize = (e) => {
+    setGraphicsData(
+      graphicsData.map((item) => {
+        return {
+          ...item,
+          range: [e["xaxis.range[0]"], e["xaxis.range[1]"]],
+        };
+      })
     );
+  };
+
+  const setEventGraphicsData = ({ time, waves }) => {
+    const MINUTE_MS = 60000;
+    const startTime = new Date(time);
+    const endTime = new Date(startTime.getTime() + MINUTE_MS);
+
+    setGraphicsData(
+      graphicsData.map((item) => {
+        return {
+          ...item,
+          startTime: startTime,
+          endTime: endTime,
+        };
+      })
+    );
+  };
+
+  const setDefaultGraphicsData = () => {
+    setGraphicsData(
+      stationsId.map((item, i) => {
+        return {
+          key: item.network + item.station + item.channel,
+          ...item,
+          position:
+            i === 0 ? "first" : i === stationsId.length - 1 ? "last" : "",
+        };
+      })
+    );
+  };
+
+  useEffect(async () => {
+    stationsId = await getStations();
+    setDefaultGraphicsData();
+  }, []);
+
+  return (
+    <div className="app">
+      <h2 className="app__title">Seisgraphs: </h2>
+      <main className="app__content">
+        {<Sidebar onClickCallback={setEventGraphicsData} />}
+        <div className="app__graphics">
+          {graphicsData.map((item) => {
+            return (
+              <Graphic
+                key={item.key}
+                network={item.network}
+                station={item.station}
+                channel={item.channel}
+                position={item.position}
+                startTime={item.startTime}
+                endTime={item.endTime}
+                resize={onGraphicsResize}
+                range={item.range}
+              />
+            );
+          })}
+        </div>
+      </main>
+    </div>
+  );
 }
