@@ -65,12 +65,12 @@ export default function App() {
   const [graphicsData, setGraphicsData] = useState([]);
   let stationsId = [];
 
-  const onGraphicsResize = (e) => {
+  const onGraphicsResize = (xaxisRangeZero, xaxisRangeOne) => {
     setGraphicsData(
       graphicsData.map((item) => {
         return {
           ...item,
-          range: [e["xaxis.range[0]"], e["xaxis.range[1]"]],
+          range: [xaxisRangeZero, xaxisRangeOne],
         };
       })
     );
@@ -78,7 +78,8 @@ export default function App() {
 
   const setEventGraphicsData = ({ time, waves }) => {
     const MINUTE_MS = 60000;
-    const startTime = new Date(time);
+    const SERVER_TIME_OFFSET = MINUTE_MS * 60 * 7;
+    const startTime = new Date(new Date(time).getTime() - SERVER_TIME_OFFSET);
     const endTime = new Date(startTime.getTime() + MINUTE_MS);
 
     setGraphicsData(
@@ -87,6 +88,16 @@ export default function App() {
           ...item,
           startTime: startTime,
           endTime: endTime,
+          waves: waves
+            .filter(
+              (wave) =>
+                wave.network === item.network &&
+                wave.station === item.station &&
+                wave.channel === item.channel
+            )
+            .map((wave) => {
+              return { phase: wave.phase, time: wave.time };
+            }),
         };
       })
     );
@@ -126,6 +137,7 @@ export default function App() {
                 position={item.position}
                 startTime={item.startTime}
                 endTime={item.endTime}
+                waves={item.waves}
                 resize={onGraphicsResize}
                 range={item.range}
               />
